@@ -703,6 +703,18 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "pyairtable"
+version = "1.5.0"
+description = "Python Client for the Airtable API"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+requests = ">=2.22.0"
+urllib3 = "<2"
+
+[[package]]
 name = "pyarrow"
 version = "12.0.0"
 description = "Python library for Apache Arrow"
@@ -1327,7 +1339,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10.0,<3.11"
-content-hash = "cb400ddfa799effedc7fb52b86f1c646388134923c57e71711f36c13b23fdfee"
+content-hash = "f23e7112627b4f666184a514e220c8cd6dab9a46feb07820e11871ba469194be"
 
 [metadata.files]
 aiohttp = []
@@ -1385,6 +1397,7 @@ pillow = []
 platformdirs = []
 pluggy = []
 protobuf = []
+pyairtable = []
 pyarrow = []
 pycparser = []
 pydantic = []

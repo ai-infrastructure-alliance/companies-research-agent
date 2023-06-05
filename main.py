@@ -20,20 +20,21 @@ reader = ReadingAgent(llm, logger)
 
 table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 
-# TODO: redefine the schema:
+# Fields schema:
+# URL - string
+# Name - string
+# Description - string
+# Infrastructure? - boolean
+# Agent? - boolean
+# Page title - string
+# Page summary - string
+# Status - string
 
-# URL
-# Name
-# Description
-# Infrastructure?
-# Agent?
-# Page title
-# Page summary
-# Status
 
 class Company:
 
-  def __init__(self, id, url, status, page_title, page_summary, name, description, is_infrastructure, is_agent):
+  def __init__(self, id, url, status, page_title, page_summary, name,
+               description, is_infrastructure, is_agent):
     self.id = id
     self.url = url
     self.status = status
@@ -52,10 +53,12 @@ class Company:
       url=fields['URL'],
       status=fields['Status'] if 'Status' in fields else 'New',
       page_title=fields['Page title'] if 'Page title' in fields else None,
-      page_summary=fields['Page summary'] if 'Page summary' in fields else None,
+      page_summary=fields['Page summary']
+      if 'Page summary' in fields else None,
       name=fields['Name'] if 'Name' in fields else None,
       description=fields['Description'] if 'Description' in fields else None,
-      is_infrastructure=fields['Infrastructure?'] if 'Infrastructure?' in fields else None,
+      is_infrastructure=fields['Infrastructure?']
+      if 'Infrastructure?' in fields else None,
       is_agent=fields['Agent?'] if 'Agent?' in fields else None)
 
   def to_airtable_fields(self):
@@ -77,7 +80,7 @@ def connection_test():
   for row in rows:
     print(row)
     id = row['id']
-    status = 'Read'  # row['fields']['Status']
+    status = row['fields']['Status']
     table.update(id, {'Status': f'{status}'})
 
 
@@ -104,10 +107,6 @@ def clean_up_urls():
     table.update(id, {'URL': f'{cleaned_url}'})
 
 
-#    if not url.startswith('http'):
-#      table.update(id, {'URL': f'https://{url}'})
-
-
 def process_company(company):
   company.page_title = reader.define_title_by_link(company.url)
   company.page_summary = reader.define_summary_by_link(company.url)
@@ -131,5 +130,3 @@ def read_companies():
 # clean_up_urls()
 # STEP 2: Read companies names and generate summaries
 read_companies()
-
-

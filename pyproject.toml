@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "Companies Analyzer"
+version = "0.1.0"
+description = ""
+authors = ["Mariya Davydova"]
+
+[tool.poetry.dependencies]
+python = ">=3.10.0,<3.11"
+numpy = "^1.22.2"
+replit = "^3.2.4"
+Flask = "^2.2.0"
+urllib3 = "^1.26.12"
+utils = "^1.0.1"
+bs4 = "^0.0.1"
+guidance = "^0.0.57"
+langchain = "^0.0.163"
+openai = "^0.27.0"
+tiktoken = "^0.4.0"
+nest_asyncio = "^1.5.0"
+python-docx = "^0.8.11"
+schedule = "^1.2.0"
+streamlit = "1.22.0"
+pypandoc = "1.11"
+
+[tool.poetry.dev-dependencies]
+debugpy = "^1.6.2"
+replit-python-lsp-server = {extras = ["yapf", "rope", "pyflakes"], version = "^1.5.9"}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -3,9 +3,17 @@ from langchain import OpenAI
 from pyairtable import Table
 from pyairtable.formulas import match
 from urllib.parse import urlparse, urlunparse
+import guidance
+import time
 
 from reading_agent import ReadingAgent
+from analyzing_agent import AnalyzingAgent
 from logger import setup_log
+
+import asyncio
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
 BASE_ID = 'appvOnl6DnnKj8fVM'
@@ -14,9 +22,13 @@ TABLE_NAME = 'Automagic'
 OPEN_AI_KEY = os.environ.get('OPEN_AI_KEY')
 llm = OpenAI(temperature=0, openai_api_key=OPEN_AI_KEY)
 
+gpt = guidance.llms.OpenAI(model="gpt-3.5-turbo", token=OPEN_AI_KEY)
+guidance.llm = gpt
+
 logger = setup_log('companies')
 
 reader = ReadingAgent(llm, logger)
+analyzer = AnalyzingAgent(gpt, logger)
 
 table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 
@@ -25,7 +37,6 @@ table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 # Name - string
 # Description - string
 # Infrastructure? - boolean
-# Agent? - boolean
 # Page title - string
 # Page summary - string
 # Status - string
@@ -34,7 +45,7 @@ table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 class Company:
 
   def __init__(self, id, url, status, page_title, page_summary, name,
-               description, is_infrastructure, is_agent):
+               description, is_infrastructure):
     self.id = id
     self.url = url
     self.status = status
@@ -43,7 +54,6 @@ class Company:
     self.name = name
     self.description = description
     self.is_infrastructure = is_infrastructure
-    self.is_agent = is_agent
 
   @staticmethod
   def from_airtable_fields(id, fields):
@@ -58,8 +68,7 @@ class Company:
       name=fields['Name'] if 'Name' in fields else None,
       description=fields['Description'] if 'Description' in fields else None,
       is_infrastructure=fields['Infrastructure?']
-      if 'Infrastructure?' in fields else None,
-      is_agent=fields['Agent?'] if 'Agent?' in fields else None)
+      if 'Infrastructure?' in fields else None)
 
   def to_airtable_fields(self):
     return {
@@ -69,8 +78,7 @@ class Company:
       'Page summary': self.page_summary,
       'Name': self.name,
       'Description': self.description,
-      'Infrastructure?': self.is_infrastructure,
-      'Agent?': self.is_agent
+      'Infrastructure?': self.is_infrastructure
     }
 
 
@@ -110,23 +118,58 @@ def clean_up_urls():
 def process_company(company):
   company.page_title = reader.define_title_by_link(company.url)
   company.page_summary = reader.define_summary_by_link(company.url)
+  print(f"=== Summary ===\n{company.page_summary}")
   company.status = 'Read'
   table.update(company.id, company.to_airtable_fields())
-  logger.info(
-    f"[Reader] Processed company {company.name} with URL {company.url}.")
+  logger.info(f"[Main] Processed company with URL {company.url}.")
 
 
 def read_companies():
-  logger.info("[Reader] Reading companies from AirTable...")
+  logger.info("[Main] Reading companies from AirTable...")
   formula = match({'Status': 'New'})
   rows = table.all(formula=formula)
   for row in rows:
     company = Company.from_airtable_fields(row['id'], row['fields'])
     process_company(company)
-  logger.info(f"[Reader] Done. Processed {len(rows)} companies.")
+    time.sleep(1)
+  logger.info(f"[Main] Done. Processed {len(rows)} companies.")
+
+
+def analyze_company(company):
+  logger.info(f"[Main] Analyzing a company with URL {company.url}.")
+  name, description, is_infrastructure, thoughts = analyzer.analyze_company(
+    company.page_title, company.page_summary)
+  print(f"=== Thoughts ===\n{thoughts}\n")
+  print(f"=== Name === \n{name}\n")
+  print(f"=== Description ===\n{description}\n")
+  print(f"=== Is infrastructure? ===\n{is_infrastructure}\n")
+  if name.startswith("The name of the company is "):
+    name = name[len("The name of the company is "):]
+  if name.endswith("."):
+    name = name[:-1]
+  company.name = name
+  company.description = description
+  company.is_infrastructure = True if is_infrastructure.lower().startswith(
+    'yes') else False
+  company.status = 'Processed'
+  table.update(company.id, company.to_airtable_fields())
+  logger.info(f"[Analyze] Done. Processed company {company.name}")
+
+
+def analyze_companies():
+  logger.info("[Main] Analyzing companies from AirTable...")
+  formula = match({'Status': 'Read'})
+  rows = table.all(formula=formula)
+  for row in rows:
+    company = Company.from_airtable_fields(row['id'], row['fields'])
+    analyze_company(company)
+    time.sleep(1)
+  logger.info(f"[Main] Done. Processed {len(rows)} companies.")
 
 
 # STEP 1: Clean up urls
-# clean_up_urls()
+clean_up_urls()
 # STEP 2: Read companies names and generate summaries
 read_companies()
+# STEP 3: Analyze companies
+analyze_companies()

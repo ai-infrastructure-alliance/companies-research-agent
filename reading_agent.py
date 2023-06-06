@@ -13,9 +13,12 @@ class ReadingAgent:
     self.llm = llm
     self.logger = logger
     self.text_splitter = RecursiveCharacterTextSplitter()
-    prompt_template = """Write a concise summary of the following text. 
-    I want you to provide me with bullet points highlighting the core ideas
-    of this piece. Keep each bullet point under one or two sentences.
+    prompt_template = """
+    Write a concise summary of the following text.
+    This is a landing page of a company. 
+    I want you to provide me with bullet points explaining what this company does,
+    and what the features of its solution are.
+    Keep each bullet point under one or two sentences.
 
       {text}
 

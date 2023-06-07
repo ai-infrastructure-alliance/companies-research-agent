@@ -16,6 +16,8 @@ import asyncio
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
+LIMIT = 25
+
 AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
 BASE_ID = 'appvOnl6DnnKj8fVM'
 TABLE_NAME = 'Automagic'
@@ -109,14 +111,20 @@ def clean_up_urls():
     table.update(id, {'URL': f'{cleaned_url}'})
 
 
-def process_company(company):
-  company.page_title = reader.define_title_by_link(company.url)
-  company.page_summary = reader.define_summary_by_link(company.url)
-  company.page_summary = company.page_summary.strip()
-  print(f"=== Summary ===\n{company.page_summary}")
-  company.status = 'Read'
-  table.update(company.id, company.to_airtable_fields())
-  logger.info(f"[Main] Processed company with URL {company.url}.")
+def read_company(company):
+  try:
+    company.page_title = reader.define_title_by_link(company.url)
+    company.page_summary = reader.define_summary_by_link(company.url)
+    company.page_summary = company.page_summary.strip()
+    print(f"=== Summary ===\n{company.page_summary}")
+    company.status = 'Read'
+    table.update(company.id, company.to_airtable_fields())
+    logger.info(f"[Main] Processed company with URL {company.url}.")
+  except Exception as e:
+    table.update(company.id, {'Status': 'Error'})
+    logger.error(
+      f"[Main] Error while processing company with URL {company.url}.")
+    logger.error(e)
 
 
 def read_companies():
@@ -125,35 +133,40 @@ def read_companies():
   rows = table.all(formula=formula)
   n = 0
   all = len(rows)
-  for row in rows:
+  for row in rows[:LIMIT]:
     n += 1
     logger.info(f"[Main] Processing the record [{n}/{all}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
-    process_company(company)
+    read_company(company)
     time.sleep(1)
   logger.info(f"[Main] Done. Processed {n} companies.")
 
 
 def describe_company(company):
-  logger.info(f"[Main] Analyzing a company with URL {company.url}.")
-  name, description, thoughts = describer.describe_company(
-    company.page_title, company.page_summary)
-  print(f"=== Thoughts ===\n{thoughts}\n")
-  print(f"=== Name === \n{name}\n")
-  print(f"=== Description ===\n{description}\n")
-  if name.startswith("The name of the company is "):
-    name = name[len("The name of the company is "):]
-  if name.endswith("."):
-    name = name[:-1]
-  if name.startswith("\""):
-    name = name[1:-1]
-  if name.endswith("."):
-    name = name[:-1]
-  company.name = name
-  company.description = description
-  company.status = 'Described'
-  table.update(company.id, company.to_airtable_fields())
-  logger.info(f"[Analyze] Done. Processed company {company.name}")
+  try:
+    logger.info(f"[Main] Analyzing a company with URL {company.url}.")
+    name, description, thoughts = describer.describe_company(
+      company.page_title, company.page_summary)
+    print(f"=== Thoughts ===\n{thoughts}\n")
+    print(f"=== Name === \n{name}\n")
+    print(f"=== Description ===\n{description}\n")
+    if name.startswith("The name of the company is "):
+      name = name[len("The name of the company is "):]
+    if name.endswith("."):
+      name = name[:-1]
+    if name.startswith("\""):
+      name = name[1:-1]
+    if name.endswith("."):
+      name = name[:-1]
+    company.name = name
+    company.description = description
+    company.status = 'Described'
+    table.update(company.id, company.to_airtable_fields())
+    logger.info(f"[Analyze] Done. Processed company {company.name}")
+  except Exception as e:
+    table.update(company.id, {'Status': 'Error'})
+    logger.error(f"[Main] Error while processing company {company.name}.")
+    logger.error(e)
 
 
 def describe_companies():
@@ -162,7 +175,7 @@ def describe_companies():
   rows = table.all(formula=formula)
   n = 0
   all = len(rows)
-  for row in rows:
+  for row in rows[:LIMIT]:
     n += 1
     logger.info(f"[Main] Processing the record [{n}/{all}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
@@ -172,30 +185,35 @@ def describe_companies():
 
 
 def answer_q1_for_company(company):
-  logger.info(f"[Main] Analyzing a company with URL {company.url}.")
-  is_infrastructure, comment, thoughts = answerer.answer_q1(
-    company.name, company.description, company.page_summary)
-  print(f"=== Thoughts ===\n{thoughts}\n")
-  print(f"=== Infrastructure? === \n{is_infrastructure}\n")
-  print(f"=== Comment ===\n{comment}\n")
-  company.is_infrastructure = True if is_infrastructure.lower().startswith(
-    'yes') else False
-  if company.is_infrastructure:
-    company.comment = comment
-  else:
-    company.comment = None
-  company.status = 'Q1_Answered'
-  table.update(company.id, company.to_airtable_fields())
-  logger.info(f"[Analyze] Done. Processed company {company.name}")
+  try:
+    logger.info(f"[Main] Analyzing a company with URL {company.url}.")
+    is_infrastructure, comment, thoughts = answerer.answer_q1(
+      company.name, company.description, company.page_summary)
+    print(f"=== Thoughts ===\n{thoughts}\n")
+    print(f"=== Infrastructure? === \n{is_infrastructure}\n")
+    print(f"=== Comment ===\n{comment}\n")
+    company.is_infrastructure = True if is_infrastructure.lower().startswith(
+      'yes') else False
+    if company.is_infrastructure:
+      company.comment = comment
+    else:
+      company.comment = None
+    company.status = 'Q1_Answered'
+    table.update(company.id, company.to_airtable_fields())
+    logger.info(f"[Analyze] Done. Processed company {company.name}")
+  except Exception as e:
+    table.update(company.id, {'Status': 'Error'})
+    logger.error(f"[Main] Error while processing company {company.name}.")
+    logger.error(e)
 
 
-def answer_q1_for_all():
+def answer_q1_for_all_companies():
   logger.info("[Main] Answering Q1 for companies from AirTable...")
   formula = match({'Status': 'Described'})
   rows = table.all(formula=formula)
   n = 0
   all = len(rows)
-  for row in rows:
+  for row in rows[:LIMIT]:
     n += 1
     logger.info(f"[Main] Processing the record [{n}/{all}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
@@ -204,11 +222,11 @@ def answer_q1_for_all():
   logger.info(f"[Main] Done. Processed {n} companies.")
 
 
-# STEP 1: Clean up urls
+# STEP 0: Clean up urls
 # clean_up_urls()
-# STEP 2: Read companies names and generate summaries
-# read_companies()
-# STEP 3: Analyze companies
-# describe_companies()
-# STEP 4: Answer questions
-answer_q1_for_all()
+# STEP 1: Read companies names and generate summaries
+read_companies()
+# STEP 2: Analyze companies
+describe_companies()
+# STEP 3: Answer questions
+answer_q1_for_all_companies()

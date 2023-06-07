@@ -7,7 +7,8 @@ import guidance
 import time
 
 from reading_agent import ReadingAgent
-from analyzing_agent import AnalyzingAgent
+from describing_agent import DescribingAgent
+from q_n_a_agent import QnAAgent
 from logger import setup_log
 
 import asyncio
@@ -28,7 +29,8 @@ guidance.llm = gpt
 logger = setup_log('companies')
 
 reader = ReadingAgent(llm, logger)
-analyzer = AnalyzingAgent(gpt, logger)
+describer = DescribingAgent(gpt, logger)
+answerer = QnAAgent(gpt, logger)
 
 table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 
@@ -37,6 +39,7 @@ table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 # Name - string
 # Description - string
 # Infrastructure? - boolean
+# Comment - string
 # Page title - string
 # Page summary - string
 # Status - string
@@ -45,7 +48,7 @@ table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 class Company:
 
   def __init__(self, id, url, status, page_title, page_summary, name,
-               description, is_infrastructure):
+               description, is_infrastructure, comment):
     self.id = id
     self.url = url
     self.status = status
@@ -54,6 +57,7 @@ class Company:
     self.name = name
     self.description = description
     self.is_infrastructure = is_infrastructure
+    self.comment = comment
 
   @staticmethod
   def from_airtable_fields(id, fields):
@@ -68,7 +72,8 @@ class Company:
       name=fields['Name'] if 'Name' in fields else None,
       description=fields['Description'] if 'Description' in fields else None,
       is_infrastructure=fields['Infrastructure?']
-      if 'Infrastructure?' in fields else None)
+      if 'Infrastructure?' in fields else None,
+      comment=fields['Comment'] if 'Comment' in fields else None)
 
   def to_airtable_fields(self):
     return {
@@ -78,7 +83,8 @@ class Company:
       'Page summary': self.page_summary,
       'Name': self.name,
       'Description': self.description,
-      'Infrastructure?': self.is_infrastructure
+      'Infrastructure?': self.is_infrastructure,
+      'Comment': self.comment
     }
 
 
@@ -118,6 +124,7 @@ def clean_up_urls():
 def process_company(company):
   company.page_title = reader.define_title_by_link(company.url)
   company.page_summary = reader.define_summary_by_link(company.url)
+  company.page_summary = company.page_summary.strip()
   print(f"=== Summary ===\n{company.page_summary}")
   company.status = 'Read'
   table.update(company.id, company.to_airtable_fields())
@@ -128,48 +135,92 @@ def read_companies():
   logger.info("[Main] Reading companies from AirTable...")
   formula = match({'Status': 'New'})
   rows = table.all(formula=formula)
+  n = 0
+  all = len(rows)
   for row in rows:
+    n += 1
+    logger.info(f"[Main] Processing the record [{n}/{all}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
     process_company(company)
     time.sleep(1)
-  logger.info(f"[Main] Done. Processed {len(rows)} companies.")
+  logger.info(f"[Main] Done. Processed {n} companies.")
 
 
-def analyze_company(company):
+def describe_company(company):
   logger.info(f"[Main] Analyzing a company with URL {company.url}.")
-  name, description, is_infrastructure, thoughts = analyzer.analyze_company(
+  name, description, thoughts = describer.describe_company(
     company.page_title, company.page_summary)
   print(f"=== Thoughts ===\n{thoughts}\n")
   print(f"=== Name === \n{name}\n")
   print(f"=== Description ===\n{description}\n")
-  print(f"=== Is infrastructure? ===\n{is_infrastructure}\n")
   if name.startswith("The name of the company is "):
     name = name[len("The name of the company is "):]
   if name.endswith("."):
     name = name[:-1]
+  if name.startswith("\""):
+    name = name[1:-1]
+  if name.endswith("."):
+    name = name[:-1]
   company.name = name
   company.description = description
-  company.is_infrastructure = True if is_infrastructure.lower().startswith(
-    'yes') else False
-  company.status = 'Processed'
+  company.status = 'Described'
   table.update(company.id, company.to_airtable_fields())
   logger.info(f"[Analyze] Done. Processed company {company.name}")
 
 
-def analyze_companies():
-  logger.info("[Main] Analyzing companies from AirTable...")
+def describe_companies():
+  logger.info("[Main] Describing companies from AirTable...")
   formula = match({'Status': 'Read'})
   rows = table.all(formula=formula)
+  n = 0
+  all = len(rows)
   for row in rows:
+    n += 1
+    logger.info(f"[Main] Processing the record [{n}/{all}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
-    analyze_company(company)
+    describe_company(company)
     time.sleep(1)
-  logger.info(f"[Main] Done. Processed {len(rows)} companies.")
+  logger.info(f"[Main] Done. Processed {n} companies.")
+
+
+def answer_q1_for_company(company):
+  logger.info(f"[Main] Analyzing a company with URL {company.url}.")
+  is_infrastructure, comment, thoughts = answerer.answer_q1(
+    company.name, company.description, company.page_summary)
+  print(f"=== Thoughts ===\n{thoughts}\n")
+  print(f"=== Infrastructure? === \n{is_infrastructure}\n")
+  print(f"=== Comment ===\n{comment}\n")
+  company.is_infrastructure = True if is_infrastructure.lower().startswith(
+    'yes') else False
+  if company.is_infrastructure:
+    company.comment = comment
+  else:
+    company.comment = None
+  company.status = 'Q1_Answered'
+  table.update(company.id, company.to_airtable_fields())
+  logger.info(f"[Analyze] Done. Processed company {company.name}")
+
+
+def answer_q1_for_all():
+  logger.info("[Main] Answering Q1 for companies from AirTable...")
+  formula = match({'Status': 'Described'})
+  rows = table.all(formula=formula)
+  n = 0
+  all = len(rows)
+  for row in rows:
+    n += 1
+    logger.info(f"[Main] Processing the record [{n}/{all}]")
+    company = Company.from_airtable_fields(row['id'], row['fields'])
+    answer_q1_for_company(company)
+    time.sleep(1)
+  logger.info(f"[Main] Done. Processed {n} companies.")
 
 
 # STEP 1: Clean up urls
-clean_up_urls()
+# clean_up_urls()
 # STEP 2: Read companies names and generate summaries
-read_companies()
+# read_companies()
 # STEP 3: Analyze companies
-analyze_companies()
+# describe_companies()
+# STEP 4: Answer questions
+answer_q1_for_all()

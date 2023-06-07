@@ -2,7 +2,7 @@ import os
 from langchain import OpenAI
 from pyairtable import Table
 from pyairtable.formulas import match
-from urllib.parse import urlparse, urlunparse
+from utils import clean_url
 import guidance
 import time
 
@@ -96,18 +96,6 @@ def connection_test():
     id = row['id']
     status = row['fields']['Status']
     table.update(id, {'Status': f'{status}'})
-
-
-def clean_url(url):
-  parsed_url = urlparse(url)
-  cleaned_url = parsed_url._replace(query="")
-  if not cleaned_url.scheme:
-    cleaned_url = cleaned_url._replace(scheme='https')
-  new_url = urlunparse(cleaned_url)
-  new_url = new_url.replace('///', '//')
-  if new_url.endswith('/'):
-    new_url = new_url[:-1]
-  return new_url
 
 
 def clean_up_urls():

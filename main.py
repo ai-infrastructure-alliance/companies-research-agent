@@ -9,14 +9,14 @@ import time
 from reading_agent import ReadingAgent
 from describing_agent import DescribingAgent
 from q_n_a_agent import QnAAgent
-from logger import setup_log
+from logger import setup_log, reset_log
 
 import asyncio
 
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
-LIMIT = 25
+LIMIT = 100
 
 AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
 BASE_ID = 'appvOnl6DnnKj8fVM'
@@ -29,6 +29,7 @@ gpt = guidance.llms.OpenAI(model="gpt-3.5-turbo", token=OPEN_AI_KEY)
 guidance.llm = gpt
 
 logger = setup_log('companies')
+reset_log('companies')
 
 reader = ReadingAgent(llm, logger)
 describer = DescribingAgent(gpt, logger)

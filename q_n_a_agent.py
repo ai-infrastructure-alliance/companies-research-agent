@@ -36,10 +36,16 @@ class QnAAgent:
     Python frameworks that allow communicating with databases, hosted API, 
     models including LLMs, are also considered to be useful.
 
-    On the contrary, the companies that build somlutions for end-user, 
-    e.g. for designers, copywriters, sales persons, HR, etc, and provide
+    On the contrary, the companies that build solutions for end-user, 
+    e.g. for copywriters, sales persons, HR, marketers, etc, and provide
     API to their solutions, are NOT considered to be targeting software
-    developers.
+    developers. If the company is targeting a very wide audience, that includes
+    sofware developers, then they are also NOT qualified as a company focusing on
+    developers of AI applications.
+
+    However, if the company claims that their solution is used for low-code or
+    no-code creation of AI applicatons, then they SHOULD BE qualified as a company
+    focusing on developers of AI applications. 
 
     Let's think step by step.
     {{~/user}}

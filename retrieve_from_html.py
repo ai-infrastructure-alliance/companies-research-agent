@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 from utils import clean_url
 from urllib.parse import urljoin
 
+from agent_summarizer import retrieve
+
 AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
 BASE_ID = 'appvOnl6DnnKj8fVM'
 TABLE_NAME = 'Source 4'
@@ -48,13 +50,18 @@ old_urls = set([row['fields']['URL'] for row in old_rows])
 
 added = 0
 skipped = 0
-for new_url in new_urls:
-  if new_url not in old_urls:
-    print(f"Adding {new_url}")
-    target_table.create({'URL': new_url})
-    added += 1
-  else:
-    print(f"Skipping {new_url}")
-    skipped += 1
-print(f"Added {added} URLs")
-print(f"Skipped {skipped} URLs")
+# for new_url in new_urls:
+#   if new_url not in old_urls:
+#     print(f"Adding {new_url}")
+#     target_table.create({'URL': new_url})
+#     added += 1
+#   else:
+#     print(f"Skipping {new_url}")
+#     skipped += 1
+# print(f"Added {added} URLs")
+# print(f"Skipped {skipped} URLs")
+
+for new_url in new_urls[0:10:5]:
+  print(f"Retrieving {new_url}")
+  text = retrieve(new_url)
+  print(text)

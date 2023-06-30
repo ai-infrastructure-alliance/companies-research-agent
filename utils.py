@@ -11,7 +11,7 @@ def remove_www(url):
 
 def get_final_url(url):
   try:
-    response = requests.get(url, timeout=10)
+    response = requests.get(url, timeout=60, allow_redirects=True)
     return response.url
   except requests.exceptions.RequestException as e:
     print(f"Error: {e}")
@@ -21,7 +21,7 @@ def get_final_url(url):
 def clean_url(url):
   url = get_final_url(url)
   parsed_url = urlparse(url)
-  cleaned_url = parsed_url._replace(query="")
+  cleaned_url = parsed_url  # ._replace(query="")
   if not cleaned_url.scheme:
     cleaned_url = cleaned_url._replace(scheme='https')
   new_url = urlunparse(cleaned_url)

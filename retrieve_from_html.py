@@ -6,13 +6,14 @@ from bs4 import BeautifulSoup
 from utils import clean_url
 from urllib.parse import urljoin
 
-from agent_summarizer import retrieve
+from dotenv import load_dotenv
 
+load_dotenv()
 AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
 BASE_ID = 'appvOnl6DnnKj8fVM'
-TABLE_NAME = 'Source 4'
+TABLE_NAME = 'Automagic 2'
 
-FILENAME = 'sources/Newsletter week Jun 4.html'
+FILENAME = 'sources/Jon-June.html'
 
 target_table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 
@@ -43,25 +44,30 @@ def find_all_link_in_html(filename):
 
 
 new_urls = find_all_link_in_html(FILENAME)
-new_urls = [clean_url(url) for url in new_urls]
-print(f"The page contains {len(new_urls)} links")
-old_rows = target_table.all()
-old_urls = set([row['fields']['URL'] for row in old_rows])
+print(f"The page contains {len(new_urls)} links.")
+amount = len(new_urls)
 
 added = 0
 skipped = 0
-# for new_url in new_urls:
-#   if new_url not in old_urls:
-#     print(f"Adding {new_url}")
-#     target_table.create({'URL': new_url})
-#     added += 1
-#   else:
-#     print(f"Skipping {new_url}")
-#     skipped += 1
-# print(f"Added {added} URLs")
-# print(f"Skipped {skipped} URLs")
 
-for new_url in new_urls[0:10:5]:
-  print(f"Retrieving {new_url}")
-  text = retrieve(new_url)
-  print(text)
+for new_url in new_urls:
+  print(f"Processing {added + skipped + 1} of {amount} found URLs.")
+
+  try:
+    url = clean_url(new_url)
+    old_rows = target_table.all()
+    old_urls = set([row['fields']['URL'] for row in old_rows])
+
+    if url not in old_urls:
+      print(f"Adding {url}")
+      target_table.create({'URL': url})
+      added += 1
+    else:
+      print(f"Skipping {url}")
+      skipped += 1
+  except Exception as e:
+    print(f"Error while processing {new_url}: {e}")
+    skipped += 1
+
+print(f"Added {added} URLs")
+print(f"Skipped {skipped} URLs")

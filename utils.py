@@ -1,5 +1,5 @@
 from urllib.parse import urlparse, urlunparse
-import requests
+from requests_html import HTMLSession
 
 
 def remove_www(url):
@@ -10,23 +10,33 @@ def remove_www(url):
 
 
 def get_final_url(url):
+  session = HTMLSession()
   try:
-    response = requests.get(url, timeout=60, allow_redirects=True)
+    response = session.get(url)
+    response.html.render(timeout=60.0)
     return response.url
-  except requests.exceptions.RequestException as e:
+  except Exception as e:
     print(f"Error: {e}")
     return None
 
 
 def clean_url(url):
-  url = get_final_url(url)
-  parsed_url = urlparse(url)
-  cleaned_url = parsed_url  # ._replace(query="")
-  if not cleaned_url.scheme:
-    cleaned_url = cleaned_url._replace(scheme='https')
-  new_url = urlunparse(cleaned_url)
-  new_url = new_url.replace('///', '//')
-  new_url = remove_www(new_url)
-  if new_url.endswith('/'):
-    new_url = new_url[:-1]
-  return new_url
+  try:
+    print(f"Cleaning {url}")
+    url = get_final_url(url)
+    if not url:
+      return None
+    parsed_url = urlparse(url)
+    cleaned_url = parsed_url._replace(query="")
+    if not cleaned_url.scheme:
+      cleaned_url = cleaned_url._replace(scheme='https')
+    new_url = urlunparse(cleaned_url)
+    new_url = new_url.replace('///', '//')
+    new_url = remove_www(new_url)
+    if new_url.endswith('/'):
+      new_url = new_url[:-1]
+    print(f"Cleaned to {new_url}")
+    return new_url
+  except Exception as e:
+    print(f"Error: {e}")
+    return None

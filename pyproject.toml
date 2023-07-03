@@ -26,7 +26,7 @@ agent-summarizer = "^0.1.2"
 requests = "^2.31.0"
 cohere = "^4.11.2"
 transformers = "^4.30.2"
-typing-extensions = "3.10"
+requests-html = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
 debugpy = "^1.6.2"

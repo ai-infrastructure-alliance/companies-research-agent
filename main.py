@@ -11,6 +11,8 @@ from describing_agent import DescribingAgent
 from q_n_a_agent import QnAAgent
 from logger import setup_log, reset_log
 
+from agent_summarizer import summarize, retrieve, get_best_llm_openai
+
 import asyncio
 
 loop = asyncio.new_event_loop()
@@ -23,7 +25,8 @@ BASE_ID = 'appvOnl6DnnKj8fVM'
 TABLE_NAME = 'Automagic'
 
 OPEN_AI_KEY = os.environ.get('OPEN_AI_KEY')
-llm = OpenAI(temperature=0, openai_api_key=OPEN_AI_KEY)
+# llm = OpenAI(temperature=0, openai_api_key=OPEN_AI_KEY)
+llm = get_best_llm_openai(OPEN_AI_KEY)
 
 gpt = guidance.llms.OpenAI(model="gpt-3.5-turbo", token=OPEN_AI_KEY)
 guidance.llm = gpt
@@ -114,8 +117,11 @@ def clean_up_urls():
 
 def read_company(company):
   try:
-    company.page_title = reader.define_title_by_link(company.url)
-    company.page_summary = reader.define_summary_by_link(company.url)
+    result = summarize(company.url, llm)
+    company.page_title = result['title']
+    company.page_summary = result['summary']
+    # company.page_title = reader.define_title_by_link(company.url)
+    # company.page_summary = reader.define_summary_by_link(company.url)
     company.page_summary = company.page_summary.strip()
     print(f"=== Summary ===\n{company.page_summary}")
     company.status = 'Read'

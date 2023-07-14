@@ -9,11 +9,12 @@ from urllib.parse import urljoin
 from dotenv import load_dotenv
 
 load_dotenv()
+
 AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
 BASE_ID = 'appvOnl6DnnKj8fVM'
-TABLE_NAME = 'Automagic 2'
+TABLE_NAME = 'Source 6'
 
-FILENAME = 'sources/Jon-June.html'
+FILENAME = 'sources/Ben-June.html'
 
 target_table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 
@@ -43,31 +44,38 @@ def find_all_link_in_html(filename):
     return raw_links
 
 
-new_urls = find_all_link_in_html(FILENAME)
-print(f"The page contains {len(new_urls)} links.")
-amount = len(new_urls)
+def step_1():
+  # STEP 1: Add all new URLs to the table
+  new_urls = find_all_link_in_html(FILENAME)
+  print(f"The page contains {len(new_urls)} links.")
+  for new_url in new_urls:
+    target_table.create({'Raw URL': new_url})
+    print(f"Added {new_url} to the table.")
 
-added = 0
-skipped = 0
+def step_2():
+  # STEP 2: Process all new URLs
+  new_urls_rows = target_table.all()
+  limit = 20
+  processsing = 0
+  n = 0
+  for row in new_urls_rows:
+    n += 1
+    print(f"Processing {n} of {len(new_urls_rows)} URLs.")
+    try:
+      status = row['fields']['Status']
+      if status and status == 'New':
+        raw_url = row['fields']['Raw URL']
+        if processsing >= limit:
+          print(f"Reached limit of {limit} URLs processed.")
+          break
+        processsing += 1
+        cleaned_url = clean_url(raw_url)
+        target_table.update(row['id'], {'URL': cleaned_url, 'Status': 'Processed'})
+      else:
+        print(f"Skipping {row['fields']['Raw URL']} because it is not new.")
+    except Exception as e:
+      print(f"Error while processing {row['fields']['Raw URL']}: {e}")
+      target_table.update(row['id'], {'Status': 'Error'})
 
-for new_url in new_urls:
-  print(f"Processing {added + skipped + 1} of {amount} found URLs.")
-
-  try:
-    url = clean_url(new_url)
-    old_rows = target_table.all()
-    old_urls = set([row['fields']['URL'] for row in old_rows])
-
-    if url not in old_urls:
-      print(f"Adding {url}")
-      target_table.create({'URL': url})
-      added += 1
-    else:
-      print(f"Skipping {url}")
-      skipped += 1
-  except Exception as e:
-    print(f"Error while processing {new_url}: {e}")
-    skipped += 1
-
-print(f"Added {added} URLs")
-print(f"Skipped {skipped} URLs")
+# step_1()
+step_2()

@@ -20,6 +20,10 @@ asyncio.set_event_loop(loop)
 
 LIMIT = 100
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
 BASE_ID = 'appvOnl6DnnKj8fVM'
 TABLE_NAME = 'Automagic'

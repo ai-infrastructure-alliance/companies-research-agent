@@ -7,8 +7,6 @@ authors = ["Mariya Davydova"]
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = "^1.22.2"
-replit = "^3.2.4"
-Flask = "^2.2.0"
 urllib3 = "^1.26.12"
 utils = "^1.0.1"
 bs4 = "^0.0.1"
@@ -27,6 +25,8 @@ cohere = "^4.11.2"
 transformers = "^4.30.2"
 requests-html = "^0.10.0"
 agent-reader = "^0.2.2"
+typing-extensions = "4.5.0"
+pydantic = "1.10.8"
 
 [tool.poetry.dev-dependencies]
 debugpy = "^1.6.2"

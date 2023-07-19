@@ -9,7 +9,7 @@ load_dotenv()
 AIRTABLE_API_KEY = os.environ.get('AIRTABLE_API_KEY')
 BASE_ID = os.environ.get('BASE_ID')
 
-TARGET_TABLE_NAME = 'Source 6'
+TARGET_TABLE_NAME = 'Source'
 FILENAME = 'sources/links.html'
 
 # Limit the amount of URLs processed on one run, because each processing 

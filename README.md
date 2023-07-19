@@ -74,11 +74,19 @@ the name of the column where URLs are stored in the source table. This process i
 ### Getting URLs from an HTML page
 
 Run [retrieve_from_html.py](retrieve_from_html.py). You'll need point the correct file 
-in the script and a target table to put URLs into. There are two potential scenarios:
+in the script and a target table to put URLs into. 
+
+The target table should contain:
+    - `Raw URL` (URL, primary)
+    - `URL` (URL)
+    - `Status` (Single select; 'New' - default, 'Error', 'Processed')
+
+There are two potential scenarios:
 
 * Your URLs are "clean", i.e. they are just direct links to the companies web pages. In this case, 
-you can comment the `step2()` call at the bottom of the page.
+you can comment the `step2()` call at the bottom of the page. The URLs will be added to the `Raw URL` column.
 
 * Your URLs come from some sources like newsletters. In this case, they may be "dirty", i.e. contain
 JS redirects, UTM tags, etc. In this case, you need `step2()` to clean them up. However, this step is 
-resource-heavy, so be cautious and set proper `LIMIT` to avoid your computer freezing.
+resource-heavy, so be cautious and set proper `LIMIT` to avoid your computer freezing. The clean URLs
+will be added to the `URL` column.

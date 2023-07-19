@@ -8,7 +8,7 @@ AIRTABLE_API_KEY = os.environ.get('AIRTABLE_API_KEY')
 BASE_ID = os.environ.get('BASE_ID')
 
 TARGET_TABLE_NAME = 'Automagic'
-SOURCE_TABLE_NAME = 'Source 6'
+SOURCE_TABLE_NAME = 'Source'
 SOURCE_COLUMN_NAME = 'URL'
 
 target_table = Table(AIRTABLE_API_KEY, BASE_ID, TARGET_TABLE_NAME)

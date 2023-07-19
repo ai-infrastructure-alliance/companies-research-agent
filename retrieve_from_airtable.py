@@ -1,19 +1,17 @@
 import os
 from pyairtable import Table
-from utils import clean_url
 
 from dotenv import load_dotenv
-
 load_dotenv()
 
-AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
-BASE_ID = 'appvOnl6DnnKj8fVM'
-TABLE_NAME = 'Automagic'
+AIRTABLE_API_KEY = os.environ.get('AIRTABLE_API_KEY')
+BASE_ID = os.environ.get('BASE_ID')
 
+TARGET_TABLE_NAME = 'Automagic'
 SOURCE_TABLE_NAME = 'Source 6'
 SOURCE_COLUMN_NAME = 'URL'
 
-target_table = Table(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
+target_table = Table(AIRTABLE_API_KEY, BASE_ID, TARGET_TABLE_NAME)
 source_table = Table(AIRTABLE_API_KEY, BASE_ID, SOURCE_TABLE_NAME)
 
 new_rows = source_table.all()

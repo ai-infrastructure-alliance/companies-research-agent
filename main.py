@@ -1,44 +1,39 @@
 import os
-from langchain import OpenAI
 from pyairtable import Table
 from pyairtable.formulas import match
 from utils import clean_url
 import guidance
 import time
 
-from reading_agent import ReadingAgent
 from describing_agent import DescribingAgent
 from q_n_a_agent import QnAAgent
 from logger import setup_log, reset_log
 
-from agent_summarizer import summarize, retrieve, get_best_llm_openai
+from agent_reader import summarize, get_model, ModelType
 
 import asyncio
 
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
-LIMIT = 100
-
 from dotenv import load_dotenv
-
 load_dotenv()
 
-AIRTABLE_API_KEY = os.environ['AIRTABLE_API_KEY']
-BASE_ID = 'appvOnl6DnnKj8fVM'
+OPEN_AI_KEY = os.environ.get('OPEN_AI_KEY')
+AIRTABLE_API_KEY = os.environ.get('AIRTABLE_API_KEY')
+BASE_ID = os.environ.get('BASE_ID')
+
 TABLE_NAME = 'Automagic'
 
-OPEN_AI_KEY = os.environ.get('OPEN_AI_KEY')
-# llm = OpenAI(temperature=0, openai_api_key=OPEN_AI_KEY)
-llm = get_best_llm_openai(OPEN_AI_KEY)
+LIMIT = 100
 
-gpt = guidance.llms.OpenAI(model="gpt-3.5-turbo", token=OPEN_AI_KEY)
+gpt = guidance.llms.OpenAI(model="gpt-4", token=OPEN_AI_KEY)
 guidance.llm = gpt
 
 logger = setup_log('companies')
 reset_log('companies')
 
-reader = ReadingAgent(llm, logger)
+reading_model = get_model(ModelType.OPENAI_GPT35, OPEN_AI_KEY)
 describer = DescribingAgent(gpt, logger)
 answerer = QnAAgent(gpt, logger)
 
@@ -121,13 +116,10 @@ def clean_up_urls():
 
 def read_company(company):
   try:
-    result = summarize(company.url, llm)
+    result = summarize(company.url, reading_model)
     company.page_title = result['title']
     company.page_summary = result['summary']
-    # company.page_title = reader.define_title_by_link(company.url)
-    # company.page_summary = reader.define_summary_by_link(company.url)
     company.page_summary = company.page_summary.strip()
-    print(f"=== Summary ===\n{company.page_summary}")
     company.status = 'Read'
     table.update(company.id, company.to_airtable_fields())
     logger.info(f"[Main] Processed company with URL {company.url}.")
@@ -146,7 +138,7 @@ def read_companies():
   all = len(rows)
   for row in rows[:LIMIT]:
     n += 1
-    logger.info(f"[Main] Processing the record [{n}/{all}]")
+    logger.info(f"[Main] Processing the record [{n}/{min(all, LIMIT)}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
     read_company(company)
     time.sleep(1)
@@ -188,7 +180,7 @@ def describe_companies():
   all = len(rows)
   for row in rows[:LIMIT]:
     n += 1
-    logger.info(f"[Main] Processing the record [{n}/{all}]")
+    logger.info(f"[Main] Processing the record [{n}/{min(all, LIMIT)}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
     describe_company(company)
     time.sleep(1)
@@ -226,7 +218,7 @@ def answer_q1_for_all_companies():
   all = len(rows)
   for row in rows[:LIMIT]:
     n += 1
-    logger.info(f"[Main] Processing the record [{n}/{all}]")
+    logger.info(f"[Main] Processing the record [{n}/{min(all, LIMIT)}]")
     company = Company.from_airtable_fields(row['id'], row['fields'])
     answer_q1_for_company(company)
     time.sleep(1)

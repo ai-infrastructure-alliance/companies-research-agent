@@ -103,17 +103,6 @@ def connection_test():
     table.update(id, {'Status': f'{status}'})
 
 
-def clean_up_urls():
-  rows = table.all()
-  print(len(rows))
-  for row in rows:
-    id = row['id']
-    url = row['fields']['URL']
-    cleaned_url = clean_url(url)
-    logger.info(f"[Clean up] Cleaning up {url} to {cleaned_url}")
-    table.update(id, {'URL': f'{cleaned_url}'})
-
-
 def read_company(company):
   try:
     result = summarize(company.url, reading_model)
@@ -225,8 +214,6 @@ def answer_q1_for_all_companies():
   logger.info(f"[Main] Done. Processed {n} companies.")
 
 
-# STEP 0: Clean up urls
-# clean_up_urls()
 # STEP 1: Read companies names and generate summaries
 read_companies()
 # STEP 2: Analyze companies
